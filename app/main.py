@@ -1,26 +1,80 @@
 from fastapi import FastAPI, WebSocket
 from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-from pathlib import Path
 
 app = FastAPI(title="Realtime Chat MVP")
 
-# Static files
-BASE_DIR = Path(__file__).resolve().parent
-app.mount("/static", StaticFiles(directory=BASE_DIR / "static"), name="static")
+HTML = """
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Realtime Chat MVP</title>
+<style>
+body {
+  background:#0f172a;
+  color:white;
+  font-family:system-ui;
+  padding:20px
+}
+#chat {
+  background:#020617;
+  height:300px;
+  overflow-y:auto;
+  padding:10px;
+  margin-top:10px;
+  border-radius:8px
+}
+input,button {
+  padding:10px;
+  font-size:16px
+}
+.msg { margin-bottom:6px }
+</style>
+</head>
+<body>
 
+<h2>💬 Echtzeit-Chat (MVP)</h2>
+
+<input id="text" placeholder="Nachricht eingeben…" />
+<button onclick="send()">Senden</button>
+
+<div id="chat"></div>
+
+<script>
+const chat = document.getElementById("chat");
+const ws = new WebSocket(
+  (location.protocol === "https:" ? "wss://" : "ws://") +
+  location.host + "/ws"
+);
+
+ws.onmessage = e => {
+  const d = document.createElement("div");
+  d.className = "msg";
+  d.innerText = e.data;
+  chat.appendChild(d);
+  chat.scrollTop = chat.scrollHeight;
+};
+
+function send() {
+  const i = document.getElementById("text");
+  ws.send(i.value);
+  i.value = "";
+}
+</script>
+
+</body>
+</html>
+"""
 
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    return (BASE_DIR / "static" / "index.html").read_text(encoding="utf-8")
-
+    return HTML
 
 @app.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket):
+async def ws(ws: WebSocket):
     await ws.accept()
     await ws.send_text("🟢 Verbindung hergestellt")
 
     while True:
         msg = await ws.receive_text()
-        # Echo (später Übersetzung hier rein)
-        await ws.send_text(f"Übersetzt: {msg}")
+        await ws.send_text(f"Echo: {msg}")
