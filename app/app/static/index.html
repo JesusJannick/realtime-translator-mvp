@@ -1,62 +1,66 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-    <meta charset="UTF-8">
-    <title>Echtzeit Chat MVP</title>
-    <style>
-        body {
-            font-family: system-ui, sans-serif;
-            background: #0f172a;
-            color: white;
-            padding: 20px;
-        }
-        input, button {
-            font-size: 16px;
-            padding: 10px;
-        }
-        #chat {
-            margin-top: 20px;
-            background: #020617;
-            padding: 10px;
-            border-radius: 8px;
-            height: 300px;
-            overflow-y: auto;
-        }
-        .msg {
-            margin-bottom: 8px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Echtzeit Chat MVP</title>
+
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #0f172a;
+      color: white;
+      padding: 20px;
+    }
+    input, button {
+      font-size: 16px;
+      padding: 10px;
+    }
+    #chat {
+      margin-top: 20px;
+      background: #020617;
+      padding: 10px;
+      border-radius: 8px;
+      height: 300px;
+      overflow-y: auto;
+    }
+    .msg {
+      margin-bottom: 8px;
+    }
+  </style>
 </head>
+
 <body>
+  <h2>💬 Echtzeit-Chat (MVP)</h2>
 
-<h2>💬 Echtzeit-Chat (MVP)</h2>
+  <input id="text" placeholder="Nachricht eingeben" />
+  <button onclick="send()">Senden</button>
 
-<input id="text" placeholder="Nachricht eingeben…" />
-<button onclick="send()">Senden</button>
+  <div id="chat"></div>
 
-<div id="chat"></div>
-
-<script>
+  <script>
     const chat = document.getElementById("chat");
+
     const ws = new WebSocket(
-        (location.protocol === "https:" ? "wss://" : "ws://")
-        + location.host + "/ws"
+      (location.protocol === "https:" ? "wss://" : "ws://")
+      + location.host
+      + "/ws"
     );
 
     ws.onmessage = (e) => {
-        const div = document.createElement("div");
-        div.className = "msg";
-        div.innerText = e.data;
-        chat.appendChild(div);
-        chat.scrollTop = chat.scrollHeight;
+      const div = document.createElement("div");
+      div.className = "msg";
+      div.innerText = e.data;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
     };
 
     function send() {
-        const input = document.getElementById("text");
+      const input = document.getElementById("text");
+      if (input.value.trim() !== "") {
         ws.send(input.value);
         input.value = "";
+      }
     }
-</script>
-
+  </script>
 </body>
 </html>
