@@ -1,153 +1,44 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Realtime Translator MVP</title>
-  <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 20px; }
-    .row { display: flex; gap: 20px; flex-wrap: wrap; }
-    .panel { border: 1px solid #ddd; border-radius: 10px; padding: 14px; flex: 1; min-width: 280px; }
-    .log { height: 260px; overflow: auto; border: 1px solid #eee; border-radius: 8px; padding: 10px; background: #fafafa; }
-    .msg { margin: 8px 0; }
-    .meta { font-size: 12px; color: #666; }
-    input, select, button { font-size: 14px; padding: 8px; }
-    button { cursor: pointer; }
-    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .pill { display: inline-block; padding: 2px 8px; border: 1px solid #ddd; border-radius: 999px; font-size: 12px; }
-  </style>
+<meta charset="UTF-8">
+<title>Echtzeit-Chat MVP</title>
+<style>
+body { font-family: system-ui; background:#111; color:#fff; padding:20px }
+#chat { border:1px solid #444; padding:10px; height:300px; overflow:auto }
+input, button { padding:10px; font-size:16px }
+.msg { margin:5px 0 }
+.server { color:#0f0 }
+</style>
 </head>
 <body>
-  <h2>Realtime Customer-Service Translator (MVP)</h2>
-  <p class="meta">Demo für Text-Chat. Audio kommt später.</p>
 
-  <div class="controls">
-    <label>Berater-Sprache:</label>
-    <select id="advisorLang">
-      <option value="DE" selected>DE</option><option value="EN">EN</option><option value="FR">FR</option>
-      <option value="ES">ES</option><option value="IT">IT</option><option value="TR">TR</option>
-      <option value="AR">AR</option><option value="PL">PL</option><option value="UK">UK</option>
-    </select>
+<h2>💬 Echtzeit-Chat (MVP)</h2>
+<div id="chat"></div><br>
+<input id="input" placeholder="Nachricht eingeben…" />
+<button onclick="send()">Senden</button>
 
-    <label>Kunden-Sprache:</label>
-    <select id="customerLang">
-      <option value="EN" selected>EN</option><option value="DE">DE</option><option value="FR">FR</option>
-      <option value="ES">ES</option><option value="IT">IT</option><option value="TR">TR</option>
-      <option value="AR">AR</option><option value="PL">PL</option><option value="UK">UK</option>
-    </select>
+<script>
+const chat = document.getElementById("chat");
+const ws = new WebSocket(
+  (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws"
+);
 
-    <button id="applyBtn">Sprachen setzen</button>
-    <span id="status" class="pill">offline</span>
-  </div>
+ws.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+  const div = document.createElement("div");
+  div.className = "msg server";
+  div.textContent = data.text || data.message;
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+};
 
-  <div class="row" style="margin-top: 14px;">
-    <div class="panel">
-      <h3>Kunde</h3>
-      <div id="customerLog" class="log"></div>
-      <div style="display:flex; gap:10px; margin-top:10px;">
-        <input id="customerInput" placeholder="Kunde schreibt..." style="flex:1;" />
-        <button id="customerSend">Senden</button>
-      </div>
-    </div>
+function send() {
+  const input = document.getElementById("input");
+  ws.send(input.value);
+  input.value = "";
+}
+</script>
 
-    <div class="panel">
-      <h3>Berater</h3>
-      <div id="advisorLog" class="log"></div>
-      <div style="display:flex; gap:10px; margin-top:10px;">
-        <input id="advisorInput" placeholder="Berater schreibt..." style="flex:1;" />
-        <button id="advisorSend">Senden</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    const statusEl = document.getElementById("status");
-    const customerLog = document.getElementById("customerLog");
-    const advisorLog = document.getElementById("advisorLog");
-
-    const wsUrl = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws";
-    const ws = new WebSocket(wsUrl);
-
-    function addMsg(logEl, who, original, translated, meta) {
-      const div = document.createElement("div");
-      div.className = "msg";
-      const p1 = document.createElement("div");
-      p1.innerHTML = "<b>" + who + ":</b> " + (original || "");
-      div.appendChild(p1);
-
-      if (translated !== null && translated !== undefined) {
-        const p2 = document.createElement("div");
-        p2.innerHTML = "<b>Übersetzt:</b> " + translated;
-        div.appendChild(p2);
-      }
-
-      if (meta) {
-        const m = document.createElement("div");
-        m.className = "meta";
-        m.textContent = meta;
-        div.appendChild(m);
-      }
-      logEl.appendChild(div);
-      logEl.scrollTop = logEl.scrollHeight;
-    }
-
-    ws.onopen = () => statusEl.textContent = "online";
-    ws.onclose = () => statusEl.textContent = "offline";
-    ws.onerror = () => statusEl.textContent = "error";
-
-    ws.onmessage = (event) => {
-      const msg = JSON.parse(event.data);
-
-      if (msg.type === "hello" || msg.type === "session") {
-        if (msg.session) {
-          document.getElementById("advisorLang").value = msg.session.advisor_lang;
-          document.getElementById("customerLang").value = msg.session.customer_lang;
-        }
-        return;
-      }
-
-      if (msg.type === "chat_translated") {
-        const meta = `provider=${msg.provider}, detected=${msg.detected_source_lang || "-"}, target=${msg.target_lang}`;
-        if (msg.from_role === "customer") {
-          addMsg(customerLog, "Kunde", msg.original, null, "");
-          addMsg(advisorLog, "Kunde (für Berater)", msg.original, msg.translated, meta);
-        } else {
-          addMsg(advisorLog, "Berater", msg.original, null, "");
-          addMsg(customerLog, "Berater (für Kunde)", msg.original, msg.translated, meta);
-        }
-      }
-
-      if (msg.type === "error") {
-        addMsg(advisorLog, "System", "", null, msg.message);
-        addMsg(customerLog, "System", "", null, msg.message);
-      }
-    };
-
-    document.getElementById("applyBtn").onclick = () => {
-      ws.send(JSON.stringify({
-        type: "set_lang",
-        advisor_lang: document.getElementById("advisorLang").value,
-        customer_lang: document.getElementById("customerLang").value
-      }));
-    };
-
-    function send(role, inputId) {
-      const el = document.getElementById(inputId);
-      const text = el.value.trim();
-      if (!text) return;
-      ws.send(JSON.stringify({ type: "chat", role, text }));
-      el.value = "";
-    }
-
-    document.getElementById("customerSend").onclick = () => send("customer", "customerInput");
-    document.getElementById("advisorSend").onclick = () => send("advisor", "advisorInput");
-
-    document.getElementById("customerInput").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") send("customer", "customerInput");
-    });
-    document.getElementById("advisorInput").addEventListener("keydown", (e) => {
-      if (e.key === "Enter") send("advisor", "advisorInput");
-    });
-  </script>
 </body>
 </html>
