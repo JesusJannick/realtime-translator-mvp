@@ -37,7 +37,7 @@ async def translate_text(text: str, target_lang: str, source_lang: Optional[str]
 
 app = FastAPI(title=APP_NAME)
 
-app.mount("/static", StaticFiles(directory="app/static"), name="static")
+# app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 @app.get("/")
 async def index():
