@@ -2,53 +2,32 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>Echtzeit-Chat (MVP)</title>
-
+  <title>Echtzeit Chat MVP</title>
   <style>
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      font-family: system-ui, sans-serif;
       background: #0f172a;
       color: white;
       padding: 20px;
     }
-
-    h2 {
+    #status {
       margin-bottom: 10px;
+      font-weight: bold;
     }
-
     #chat {
       background: #020617;
-      border-radius: 8px;
-      padding: 10px;
       height: 300px;
       overflow-y: auto;
-      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
     }
-
     .msg {
       margin-bottom: 6px;
     }
-
-    .system {
-      opacity: 0.7;
-      font-style: italic;
-    }
-
-    .row {
-      display: flex;
-      gap: 8px;
-    }
-
-    input {
-      flex: 1;
-      padding: 10px;
+    input, button {
+      padding: 8px;
       font-size: 16px;
-    }
-
-    button {
-      padding: 10px 16px;
-      font-size: 16px;
-      cursor: pointer;
     }
   </style>
 </head>
@@ -56,44 +35,50 @@
 <body>
   <h2>💬 Echtzeit-Chat (MVP)</h2>
 
-  <div id="chat"></div>
+  <div id="status">🔴 Verbinde …</div>
 
-  <div class="row">
-    <input id="text" placeholder="Nachricht eingeben…" />
-    <button onclick="send()">Senden</button>
-  </div>
+  <input id="text" placeholder="Nachricht eingeben…" />
+  <button onclick="send()">Senden</button>
+
+  <div id="chat"></div>
 
   <script>
     const chat = document.getElementById("chat");
+    const status = document.getElementById("status");
 
-    function addMessage(text, cls = "msg") {
-      const div = document.createElement("div");
-      div.className = cls;
-      div.innerText = text;
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
-    }
-
-    // 🔴 HART CODIERTE WebSocket-URL (WICHTIG für Render)
-    const ws = new WebSocket("wss://realtime-translator-mvp.onrender.com/ws");
+    const ws = new WebSocket(
+      (location.protocol === "https:" ? "wss://" : "ws://") +
+      location.host + "/ws"
+    );
 
     ws.onopen = () => {
-      addMessage("🟢 WebSocket verbunden", "system");
+      status.innerText = "🟢 WebSocket verbunden";
     };
 
     ws.onerror = () => {
-      addMessage("🔴 WebSocket Fehler", "system");
+      status.innerText = "🔴 WebSocket Fehler";
+    };
+
+    ws.onclose = () => {
+      status.innerText = "🔴 Verbindung geschlossen";
     };
 
     ws.onmessage = (e) => {
-      addMessage(e.data);
+      const div = document.createElement("div");
+      div.className = "msg";
+      div.innerText = e.data;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
     };
 
     function send() {
       const input = document.getElementById("text");
-      if (!input.value) return;
 
-      addMessage("Du: " + input.value);
+      if (ws.readyState !== WebSocket.OPEN) {
+        alert("WebSocket nicht verbunden");
+        return;
+      }
+
       ws.send(input.value);
       input.value = "";
     }
