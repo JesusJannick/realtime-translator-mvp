@@ -1,1 +1,4 @@
-rt-translate-mvp.zip
+fastapi
+uvicorn
+httpx
+python-multipart
