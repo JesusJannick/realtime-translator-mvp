@@ -41,8 +41,12 @@ app = FastAPI(title=APP_NAME)
 
 @app.get("/")
 async def index():
-    with open("app/static/index.html", "r", encoding="utf-8") as f:
-        return HTMLResponse(f.read())
+    return {
+        "status": "ok",
+        "message": "Realtime Translator API is running",
+        "docs": "/docs",
+        "websocket": "/ws"
+    }
 
 @app.websocket("/ws")
 async def ws_endpoint(ws: WebSocket):
