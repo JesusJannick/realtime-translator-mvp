@@ -2,29 +2,53 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8" />
-  <title>Echtzeit Chat MVP</title>
+  <title>Echtzeit-Chat (MVP)</title>
 
   <style>
     body {
-      font-family: system-ui, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       background: #0f172a;
       color: white;
       padding: 20px;
     }
-    input, button {
-      font-size: 16px;
-      padding: 10px;
+
+    h2 {
+      margin-bottom: 10px;
     }
+
     #chat {
-      margin-top: 20px;
       background: #020617;
-      padding: 10px;
       border-radius: 8px;
+      padding: 10px;
       height: 300px;
       overflow-y: auto;
+      margin-bottom: 10px;
     }
+
     .msg {
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+    }
+
+    .system {
+      opacity: 0.7;
+      font-style: italic;
+    }
+
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+
+    input {
+      flex: 1;
+      padding: 10px;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px 16px;
+      font-size: 16px;
+      cursor: pointer;
     }
   </style>
 </head>
@@ -32,34 +56,46 @@
 <body>
   <h2>💬 Echtzeit-Chat (MVP)</h2>
 
-  <input id="text" placeholder="Nachricht eingeben" />
-  <button onclick="send()">Senden</button>
-
   <div id="chat"></div>
+
+  <div class="row">
+    <input id="text" placeholder="Nachricht eingeben…" />
+    <button onclick="send()">Senden</button>
+  </div>
 
   <script>
     const chat = document.getElementById("chat");
 
-    const ws = new WebSocket(
-      (location.protocol === "https:" ? "wss://" : "ws://")
-      + location.host
-      + "/ws"
-    );
-
-    ws.onmessage = (e) => {
+    function addMessage(text, cls = "msg") {
       const div = document.createElement("div");
-      div.className = "msg";
-      div.innerText = e.data;
+      div.className = cls;
+      div.innerText = text;
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
+    }
+
+    // 🔴 HART CODIERTE WebSocket-URL (WICHTIG für Render)
+    const ws = new WebSocket("wss://realtime-translator-mvp.onrender.com/ws");
+
+    ws.onopen = () => {
+      addMessage("🟢 WebSocket verbunden", "system");
+    };
+
+    ws.onerror = () => {
+      addMessage("🔴 WebSocket Fehler", "system");
+    };
+
+    ws.onmessage = (e) => {
+      addMessage(e.data);
     };
 
     function send() {
       const input = document.getElementById("text");
-      if (input.value.trim() !== "") {
-        ws.send(input.value);
-        input.value = "";
-      }
+      if (!input.value) return;
+
+      addMessage("Du: " + input.value);
+      ws.send(input.value);
+      input.value = "";
     }
   </script>
 </body>
